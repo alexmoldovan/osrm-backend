@@ -10,8 +10,8 @@
 #include "extractor/restriction_parser.hpp"
 #include "util/coordinate.hpp"
 #include "util/exception.hpp"
-#include "util/lua_util.hpp"
 #include "util/log.hpp"
+#include "util/lua_util.hpp"
 #include "util/typedefs.hpp"
 
 #include <osmium/osm.hpp>
@@ -51,7 +51,7 @@ auto get_value_by_key(T const &object, const char *key) -> decltype(object.get_v
 }
 
 template <class T, class D>
-const char* get_value_by_key(T const &object, const char *key, D const default_value)
+const char *get_value_by_key(T const &object, const char *key, D const default_value)
 {
     auto v = get_value_by_key(object, key);
     if (v && *v)
@@ -73,8 +73,6 @@ template <class T> double lonToDouble(T const &object)
 {
     return static_cast<double>(util::toFloating(object.lon));
 }
-
-auto get_nodes_for_way(const osmium::Way &way) -> decltype(way.nodes()) { return way.nodes(); }
 
 Sol2ScriptingEnvironment::Sol2ScriptingEnvironment(const std::string &file_name)
     : file_name(file_name)
@@ -176,16 +174,25 @@ void Sol2ScriptingEnvironment::InitContext(LuaScriptingContext &context)
         static_cast<void (std::vector<std::string>::*)(const std::string &)>(
             &std::vector<std::string>::push_back));
 
-    context.state.new_usertype<osmium::Location>(
-        "Location", "lat", &osmium::Location::lat, "lon", &osmium::Location::lon, "valid", &osmium::Location::valid);
+    context.state.new_usertype<osmium::Location>( //
+        "Location",
+        "lat",
+        &osmium::Location::lat,
+        "lon",
+        &osmium::Location::lon,
+        "valid",
+        &osmium::Location::valid);
 
-    context.state.new_usertype<osmium::Way>("Way",
-                                            "get_value_by_key",
-                                            &get_value_by_key<osmium::Way>,
-                                            "id",
-                                            &osmium::Way::id,
-                                            "get_nodes",
-                                            &get_nodes_for_way);
+    context.state.new_usertype<osmium::Way>( //
+        "Way",
+        "get_value_by_key",
+        &get_value_by_key<osmium::Way>,
+        "id",
+        &osmium::Way::id,
+        "get_nodes",
+        [](const osmium::Way &way) {
+            return std::vector<osmium::NodeRef>(way.nodes().begin(), way.nodes().end());
+        });
 
     context.state.new_usertype<osmium::Node>("Node",
                                              "location",
@@ -272,7 +279,7 @@ void Sol2ScriptingEnvironment::InitContext(LuaScriptingContext &context)
                                                    "lat",
                                                    &latToDouble<ExternalMemoryNode>);
 
-    context.state.new_usertype<util::Coordinate>(
+    context.state.new_usertype<util::Coordinate>( //
         "Coordinate",
         "lon",
         sol::property(&lonToDouble<util::Coordinate>),
