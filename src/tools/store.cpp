@@ -9,6 +9,7 @@
 #include <boost/program_options.hpp>
 
 #include <csignal>
+#include <cstdlib>
 
 using namespace osrm;
 
@@ -90,11 +91,12 @@ bool generateDataStoreOptions(const int argc,
     return true;
 }
 
-static void CleanupSharedBarriers(int)
+[[ noreturn ]] void CleanupSharedBarriers(int signum)
 { // Here the lock state of named mutexes is unknown, make a hard cleanup
     osrm::storage::SharedBarriers::resetCurrentRegions();
     osrm::storage::SharedBarriers::resetRegions1();
     osrm::storage::SharedBarriers::resetRegions2();
+    std::_Exit(128 + signum);
 }
 
 int main(const int argc, const char *argv[]) try
